@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PyNova — Python in Your Browser</title>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.28.2/full/pyodide.js"></script>
+
+<style>
+:root {
+    --bg: #080b12;
+    --panel: rgba(18, 23, 34, .82);
+    --panel2: #0e131d;
+    --border: rgba(255,255,255,.08);
+    --text: #e8edf7;
+    --muted: #7d8799;
+    --green: #42f59b;
+    --cyan: #42d9ff;
+    --purple: #9b7cff;
+    --red: #ff5577;
+    --yellow: #ffd166;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background:
+        radial-gradient(circle at 15% 15%, rgba(66,217,255,.12), transparent 30%),
+        radial-gradient(circle at 85% 80%, rgba(155,124,255,.13), transparent 30%),
+        var(--bg);
+    color: var(--text);
+    overflow: hidden;
+}
+
+button,
+select,
+input {
+    font: inherit;
+}
+
+.app {
+    height: 100vh;
+    display: grid;
+    grid-template-rows: 64px 1fr 34px;
+}
+
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(8,11,18,.75);
+    backdrop-filter: blur(18px);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 11px;
+    background: linear-gradient(135deg, var(--green), var(--cyan));
+    color: #06100d;
+    font-size: 21px;
+    font-weight: 900;
+    box-shadow: 0 0 25px rgba(66,245,155,.25);
+}
+
+.brand-name {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -.4px;
+}
+
+.brand-name span {
+    color: var(--green);
+}
+
+.subtitle {
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 2px;
+}
+
+.top-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn {
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.04);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: .18s ease;
+    font-size: 13px;
+}
+
+.btn:hover {
+    background: rgba(255,255,255,.09);
+    border-color: rgba(255,255,255,.15);
+    transform: translateY(-1px);
+}
+
+.run {
+    background: linear-gradient(135deg, #28d982, #1ebfcb);
+    color: #03100a;
+    border: 0;
+    font-weight: 800;
+    box-shadow: 0 5px 20px rgba(42,217,141,.18);
+}
+
+.run:hover {
+    background: linear-gradient(135deg, #4af09a, #3ce0ec);
+}
+
+.main {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 225px minmax(0, 1fr) minmax(280px, 35%);
+    gap: 1px;
+    background: var(--border);
+}
+
+.sidebar,
+.editor-panel,
+.output-panel {
+    min-width: 0;
+    min-height: 0;
+    background: var(--panel);
+    backdrop-filter: blur(15px);
+}
+
+.sidebar {
+    padding: 15px;
+    overflow-y: auto;
+}
+
+.section-label {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    margin: 8px 5px 10px;
+}
+
+.file-card {
+    padding: 11px;
+    border-radius: 10px;
+    background: rgba(66,245,155,.07);
+    border: 1px solid rgba(66,245,155,.12);
+    margin-bottom: 18px;
+}
+
+.file-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.file-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+}
+
+.file-meta {
+    color: var(--muted);
+    font-size: 10px;
+    margin-top: 5px;
+    padding-left: 15px;
+}
+
+.example {
+    width: 100%;
+    text-align: left;
+    padding: 10px;
+    margin-bottom: 7px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    background: rgba(255,255,255,.025);
+    color: var(--text);
+    cursor: pointer;
+}
+
+.example:hover {
+    background: rgba(255,255,255,.06);
+    border-color: var(--border);
+}
+
+.example strong {
+    display: block;
+    font-size: 12px;
+}
+
+.example small {
+    color: var(--muted);
+    font-size: 10px;
+}
+
+.editor-panel {
+    display: flex;
+    flex-direction: column;
+}
+
+.toolbar {
+    height: 48px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0,0,0,.12);
+}
+
+.tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 100%;
+    padding: 0 12px;
+    border-bottom: 2px solid var(--green);
+    font-size: 12px;
+}
+
+.python-icon {
+    color: var(--yellow);
+}
+
+.editor-tools {
+    display: flex;
+    gap: 6px;
+}
+
+.icon-btn {
+    width: 31px;
+    height: 30px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+}
+
+.icon-btn:hover {
+    color: var(--text);
+    background: rgba(255,255,255,.06);
+}
+
+.editor-wrap {
+    min-height: 0;
+    flex: 1;
+    display: grid;
+    grid-template-columns: 48px 1fr;
+    background: #090d14;
+    overflow: hidden;
+}
+
+.lines {
+    padding-top: 17px;
+    text-align: right;
+    color: #3f4858;
+    font: 14px/1.65 "SFMono-Regular", Consolas, monospace;
+    user-select: none;
+    overflow: hidden;
+}
+
+.lines div {
+    padding-right: 11px;
+    height: 23px;
+}
+
+#code {
+    width: 100%;
+    height: 100%;
+    resize: none;
+    border: 0;
+    outline: 0;
+    padding: 13px 18px 30px 8px;
+    background: transparent;
+    color: #dce5f2;
+    caret-color: var(--green);
+    font: 14px/1.65 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    tab-size: 4;
+    white-space: pre;
+    overflow: auto;
+}
+
+#code::selection {
+    background: rgba(66,245,155,.2);
+}
+
+.output-panel {
+    display: flex;
+    flex-direction: column;
+}
+
+.output-head {
+    height: 48px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    border-bottom: 1px solid var(--border);
+}
+
+.output-title {
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.status {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--muted);
+    font-size: 10px;
+}
+
+.status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--yellow);
+}
+
+.status-dot.ready {
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+}
+
+.status-dot.error {
+    background: var(--red);
+}
+
+.console {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 17px;
+    font: 13px/1.65 "SFMono-Regular", Consolas, monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.welcome {
+    color: #586579;
+}
+
+.stdout {
+    color: #b9fbd9;
+}
+
+.stderr {
+    color: #ff7893;
+}
+
+.info {
+    color: #70dfff;
+}
+
+.metrics {
+    border-top: 1px solid var(--border);
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    color: var(--muted);
+    font-size: 10px;
+}
+
+.bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    border-top: 1px solid var(--border);
+    background: rgba(8,11,18,.85);
+    color: var(--muted);
+    font-size: 10px;
+}
+
+.bottom span {
+    display: flex;
+    gap: 14px;
+}
+
+kbd {
+    border: 1px solid #343c4a;
+    background: #171c26;
+    border-radius: 4px;
+    padding: 1px 5px;
+    color: #aab4c4;
+}
+
+#fileInput {
+    display: none;
+}
+
+@media (max-width: 900px) {
+    body {
+        overflow: auto;
+    }
+
+    .app {
+        height: auto;
+        min-height: 100vh;
+    }
+
+    .main {
+        grid-template-columns: 1fr;
+        min-height: 900px;
+    }
+
+    .sidebar {
+        display: none;
+    }
+
+    .editor-panel {
+        min-height: 500px;
+    }
+
+    .output-panel {
+        min-height: 350px;
+    }
+
+    .subtitle {
+        display: none;
+    }
+
+    .top-actions .btn:not(.run) {
+        display: none;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<header class="topbar">
+    <div class="brand">
+        <div class="logo">λ</div>
+        <div>
+            <div class="brand-name">Py<span>Nova</span></div>
+            <div class="subtitle">Python playground · powered by WebAssembly</div>
+        </div>
+    </div>
+
+    <div class="top-actions">
+        <button class="btn" onclick="openFile()">Open</button>
+        <button class="btn" onclick="downloadFile()">Save .py</button>
+        <button class="btn" onclick="copyOutput()">Copy Output</button>
+        <button class="btn run" onclick="runPython()">▶ Run</button>
+    </div>
+</header>
+
+<main class="main">
+
+<aside class="sidebar">
+    <div class="section-label">Workspace</div>
+
+    <div class="file-card">
+        <div class="file-title">
+            <span class="file-dot"></span>
+            main.py
+        </div>
+        <div class="file-meta">Python source file</div>
+    </div>
+
+    <div class="section-label">Examples</div>
+
+    <button class="example" onclick="loadExample('hello')">
+        <strong>Hello World</strong>
+        <small>Your first Python program</small>
+    </button>
+
+    <button class="example" onclick="loadExample('loop')">
+        <strong>Loops</strong>
+        <small>Iteration with range()</small>
+    </button>
+
+    <button class="example" onclick="loadExample('function')">
+        <strong>Functions</strong>
+        <small>Reusable Python logic</small>
+    </button>
+
+    <button class="example" onclick="loadExample('class')">
+        <strong>Classes</strong>
+        <small>Object-oriented Python</small>
+    </button>
+
+    <button class="example" onclick="loadExample('data')">
+        <strong>Data</strong>
+        <small>Lists and comprehensions</small>
+    </button>
+
+    <button class="example" onclick="loadExample('math')">
+        <strong>Math</strong>
+        <small>Built-in math operations</small>
+    </button>
+
+    <div class="section-label" style="margin-top:25px">Shortcuts</div>
+
+    <div style="color:#667286;font-size:10px;line-height:1.8;padding:5px">
+        <div><kbd>Ctrl</kbd> + <kbd>Enter</kbd> Run</div>
+        <div><kbd>Ctrl</kbd> + <kbd>S</kbd> Save</div>
+        <div><kbd>Tab</kbd> Indent</div>
+    </div>
+</aside>
+
+<section class="editor-panel">
+
+    <div class="toolbar">
+        <div class="tab">
+            <span class="python-icon">◆</span>
+            main.py
+        </div>
+
+        <div class="editor-tools">
+            <button class="icon-btn" title="Clear editor" onclick="clearEditor()">⌫</button>
+            <button class="icon-btn" title="Format indentation" onclick="formatCode()">↔</button>
+        </div>
+    </div>
+
+    <div class="editor-wrap">
+        <div class="lines" id="lines"></div>
+        <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off">print("Welcome to PyNova!")
+
+name = "Python"
+version = 3
+
+print(f"Running {name} {version}")
+print("Everything is executing in your browser.")</textarea>
+    </div>
+
+</section>
+
+<section class="output-panel">
+
+    <div class="output-head">
+        <div class="output-title">Terminal Output</div>
+
+        <div class="status">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">Loading Python...</span>
+        </div>
+    </div>
+
+    <div class="console" id="console">
+        <div class="welcome">PyNova terminal
+
+Initializing Python runtime...</div>
+    </div>
+
+    <div class="metrics">
+        <span id="runtime">Ready</span>
+        <span id="chars">0 characters</span>
+    </div>
+
+</section>
+
+</main>
+
+<footer class="bottom">
+    <span>
+        <span>🐍 Python</span>
+        <span>WebAssembly</span>
+        <span>Client-side</span>
+    </span>
+
+    <span>
+        <span id="version">PyNova</span>
+    </span>
+</footer>
+
+</div>
+
+<input type="file" id="fileInput" accept=".py,.txt">
+
+<script>
+let pyodide = null;
+
+const code = document.getElementById("code");
+const lines = document.getElementById("lines");
+const consoleEl = document.getElementById("console");
+const statusText = document.getElementById("statusText");
+const statusDot = document.getElementById("statusDot");
+const runtime = document.getElementById("runtime");
+const chars = document.getElementById("chars");
+
+function updateLines() {
+    const count = code.value.split("\n").length;
+    lines.innerHTML = Array.from(
+        { length: count },
+        (_, i) => `<div>${i + 1}</div>`
+    ).join("");
+
+    chars.textContent = `${code.value.length.toLocaleString()} characters`;
+}
+
+function syncScroll() {
+    lines.scrollTop = code.scrollTop;
+}
+
+code.addEventListener("input", updateLines);
+code.addEventListener("scroll", syncScroll);
+
+code.addEventListener("keydown", event => {
+    if (event.key === "Tab") {
+        event.preventDefault();
+
+        const start = code.selectionStart;
+        const end = code.selectionEnd;
+
+        code.value =
+            code.value.substring(0, start) +
+            "    " +
+            code.value.substring(end);
+
+        code.selectionStart = code.selectionEnd = start + 4;
+        updateLines();
+    }
+
+    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+        event.preventDefault();
+        runPython();
+    }
+
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        downloadFile();
+    }
+});
+
+async function initialize() {
+    try {
+        pyodide = await loadPyodide();
+
+        statusText.textContent = "Python ready";
+        statusDot.classList.add("ready");
+
+        consoleEl.innerHTML =
+            '<div class="info">✓ Python runtime ready\n\nPress Run or Ctrl + Enter to execute your code.</div>';
+
+        runtime.textContent = "Runtime ready";
+    } catch (error) {
+        statusText.textContent = "Failed";
+        statusDot.classList.add("error");
+
+        consoleEl.innerHTML =
+            `<div class="stderr">${escapeHtml(error.toString())}</div>`;
+    }
+}
+
+async function runPython() {
+    if (!pyodide) {
+        consoleEl.innerHTML =
+            '<div class="stderr">Python is still loading...</div>';
+        return;
+    }
+
+    const source = code.value;
+    const start = performance.now();
+
+    consoleEl.innerHTML = "";
+
+    let output = "";
+
+    pyodide.setStdout({
+        batched: text => {
+            output += text;
+        }
+    });
+
+    pyodide.setStderr({
+        batched: text => {
+            output += text;
+        }
+    });
+
+    statusText.textContent = "Running...";
+    statusDot.classList.remove("ready");
+    statusDot.style.background = "var(--yellow)";
+
+    try {
+        await pyodide.runPythonAsync(source);
+
+        if (output) {
+            consoleEl.innerHTML =
+                `<div class="stdout">${escapeHtml(output)}</div>`;
+        } else {
+            consoleEl.innerHTML =
+                '<div class="info">Program finished with no output.</div>';
+        }
+
+        const elapsed = performance.now() - start;
+        runtime.textContent = `Executed in ${elapsed.toFixed(1)} ms`;
+
+        statusText.textContent = "Ready";
+        statusDot.classList.add("ready");
+        statusDot.style.background = "";
+    } catch (error) {
+        consoleEl.innerHTML =
+            `<div class="stderr">${escapeHtml(output + error.toString())}</div>`;
+
+        const elapsed = performance.now() - start;
+        runtime.textContent = `Failed after ${elapsed.toFixed(1)} ms`;
+
+        statusText.textContent = "Error";
+        statusDot.classList.remove("ready");
+        statusDot.classList.add("error");
+    }
+}
+
+function escapeHtml(value) {
+    return value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+function clearEditor() {
+    if (confirm("Clear the editor?")) {
+        code.value = "";
+        updateLines();
+        code.focus();
+    }
+}
+
+function formatCode() {
+    const formatted = code.value
+        .split("\n")
+        .map(line => line.replace(/\t/g, "    "))
+        .join("\n");
+
+    code.value = formatted;
+    updateLines();
+}
+
+function clearOutput() {
+    consoleEl.innerHTML = "";
+}
+
+function copyOutput() {
+    navigator.clipboard.writeText(consoleEl.innerText);
+}
+
+function downloadFile() {
+    const blob = new Blob([code.value], {
+        type: "text/plain;charset=utf-8"
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = "main.py";
+    link.click();
+
+    URL.revokeObjectURL(url);
+}
+
+function openFile() {
+    document.getElementById("fileInput").click();
+}
+
+document.getElementById("fileInput").addEventListener("change", event => {
+    const file = event.target.files[0];
+
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = e => {
+        code.value = e.target.result;
+        updateLines();
+    };
+
+    reader.readAsText(file);
+});
+
+function loadExample(type) {
+    const examples = {
+        hello:
+`name = "PyNova"
+
+print("Hello, World!")
+print("Welcome to", name)`,
+
+        loop:
+`for i in range(1, 11):
+    print(f"Number: {i}")`,
+
+        function:
+`def greet(name):
+    return f"Hello, {name}!"
+
+people = ["Alex", "Sam", "Jordan"]
+
+for person in people:
+    print(greet(person))`,
+
+        class:
+`class Robot:
+    def __init__(self, name):
+        self.name = name
+
+    def speak(self):
+        return f"{self.name}: Beep boop!"
+
+robot = Robot("Nova")
+print(robot.speak())`,
+
+        data:
+`numbers = [1, 2, 3, 4, 5, 6]
+
+squares = [n * n for n in numbers]
+even = [n for n in numbers if n % 2 == 0]
+
+print("Squares:", squares)
+print("Even:", even)`,
+
+        math:
+`import math
+
+radius = 10
+area = math.pi * radius ** 2
+
+print("Radius:", radius)
+print("Area:", area)
+print("Square root:", math.sqrt(144))`
+    };
+
+    code.value = examples[type] || "";
+    updateLines();
+    code.focus();
+}
+
+updateLines();
+initialize();
+</script>
+
+</body>
+</html>
