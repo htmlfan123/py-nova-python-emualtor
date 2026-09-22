@@ -47,4 +47,4 @@ PyNova is a client-side application. Python code runs in the browser and is not 
 
 ## License
 
-No license has been specified for this repository yet. Add a license before distributing or reusing the project publicly.
+SEE above
